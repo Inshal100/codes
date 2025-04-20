@@ -1,160 +1,114 @@
-##LAB  3####
+####LAB 4 ### NAVIE BASE:
+
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier
-import seaborn as sns
 import pandas as pd
-from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.datasets import load_iris
+from sklearn.model_selection import StratifiedKFold
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 
-# Load the Iris dataset
+# 2. Load the dataset
 iris = load_iris()
 X = iris.data
 y = iris.target
-
+# Convert to DataFrame for better visualization
 df = pd.DataFrame(X, columns=iris.feature_names)
-df['species'] = iris.target_names[y]
+df['species'] = y  # Add target labels
+df.head()
 
 
-# Plot class distribution
-plt.figure(figsize=(8,6))
-sns.countplot(x='species', data=df, palette='Set2')
-plt.title('Class Distribution of Iris Species')
-plt.xlabel('Species')
-plt.ylabel('Count')
-plt.show()
+# 2.1 Preprocessing Check for null values
+print(df.isnull().sum())
 
-# Pairplot to visualize all features together by species
-sns.pairplot(df, hue='species', palette='Set2', height=2.5)
-plt.suptitle("Pairplot of Iris Dataset Features by Species", y=1.02)
-plt.show()
-
-df = pd.DataFrame(X, columns=iris.feature_names)
-df['species'] = iris.target_names[y]
-
-
-print(f"Training set size: {X_train.shape}")
-print(f"Test set size: {X_test.shape}")
-
-
-# Train the Decision Tree Classifier with Gini index
-dt_gini = DecisionTreeClassifier(criterion='gini', random_state=42)
-dt_gini.fit(X_train, y_train)
-
-# Train the Decision Tree Classifier with Information Gain (Entropy)
-dt_entropy = DecisionTreeClassifier(criterion='entropy', random_state=42)
-dt_entropy.fit(X_train, y_train)
-
-# Make predictions
-y_pred_gini = dt_gini.predict(X_test)
-y_pred_entropy = dt_entropy.predict(X_test)
-
-# Evaluate the models
-accuracy_gini = accuracy_score(y_test, y_pred_gini)
-accuracy_entropy = accuracy_score(y_test, y_pred_entropy)
-
-print(f"Accuracy of Decision Tree with Gini Index: {accuracy_gini * 100:.2f}%")
-print(f"Accuracy of Decision Tree with Information Gain (Entropy): {accuracy_entropy * 100:.2f}%")
-
-# Prepare data for visualization
-methods = ['Gini Index', 'Information Gain (Entropy)']
-accuracies = [accuracy_gini, accuracy_entropy]
-
-# Create a bar chart to visualize the comparison
-plt.figure(figsize=(8, 6))
-plt.bar(methods, accuracies, color=['blue', 'green'])
-plt.title('Comparison of Decision Tree Classifiers')
-plt.xlabel('Method')
-plt.ylabel('Accuracy')
-plt.ylim(0, 1)
+# 3 Visualize the dataset
+#3.1Using pairplot
+sns.pairplot(df, hue="species", diag_kind="hist", palette="Set2")
+plt.suptitle("Pairplot of Iris Dataset", y=1.02)
 plt.show()
 
 
-from sklearn.tree import export_graphviz
-import graphviz
-
-
-# Export the decision tree trained with Gini index to a .png image
-dot_data_gini = export_graphviz(dt_gini, out_file=None, feature_names=iris.feature_names, class_names=iris.target_names, filled=True)
-graph_gini = graphviz.Source(dot_data_gini)
-graph_gini.render("decision_tree_gini", format="png")
-
-# Export the decision tree trained with Information Gain (Entropy) to a .png image
-dot_data_entropy = export_graphviz(dt_entropy, out_file=None, feature_names=iris.feature_names, class_names=iris.target_names, filled=True)
-graph_entropy = graphviz.Source(dot_data_entropy)
-graph_entropy.render("decision_tree_entropy", format="png")
-
-
-
-from sklearn.model_selection import GridSearchCV
-
-# Define the parameter grid for hyperparameter tuning
-param_grid = {
-    'max_depth': [3, 5, 7, None],
-    'min_samples_split': [2, 5, 10],
-    'min_samples_leaf': [1, 2, 4]
-}
-
-# Perform GridSearchCV with the Decision Tree Classifier using Gini index
-grid_search_gini = GridSearchCV(DecisionTreeClassifier(criterion='gini', random_state=42), param_grid, cv=5)
-grid_search_gini.fit(X_train, y_train)
-
-# Get the best parameters and score
-best_params_gini = grid_search_gini.best_params_
-best_score_gini = grid_search_gini.best_score_
-
-# Perform GridSearchCV with the Decision Tree Classifier using Information Gain (Entropy)
-grid_search_entropy = GridSearchCV(DecisionTreeClassifier(criterion='entropy', random_state=42), param_grid, cv=5)
-grid_search_entropy.fit(X_train, y_train)
-
-# Get the best parameters and score
-best_params_entropy = grid_search_entropy.best_params_
-best_score_entropy = grid_search_entropy.best_score_
-
-print(f"Best parameters for Gini Index: {best_params_gini}")
-print(f"Best cross-validation score for Gini Index: {best_score_gini * 100:.2f}%")
-print(f"Best parameters for Information Gain (Entropy): {best_params_entropy}")
-print(f"Best cross-validation score for Information Gain (Entropy): {best_score_entropy * 100:.2f}%")
-
-import matplotlib.pyplot as plt
-
-# Prepare the data for plotting
-methods = ['Gini Index', 'Information Gain (Entropy)']
-accuracies = [accuracy_gini, accuracy_entropy]
-
-# Plot the comparison
-plt.figure(figsize=(8, 6))
-plt.bar(methods, accuracies, color=['blue', 'green'])
-plt.title('Comparison of Decision Tree Classifiers')
-plt.ylabel('Accuracy')
-plt.ylim(0, 1)
+# 3.2 Visualize class distribution
+sns.countplot(x=df['species'])
+plt.title("Class Distribution in the Iris Dataset")
 plt.show()
 
 
-# Plot histograms for each feature
+# 4 Splitting the dataset using Stratified K-Fold Cross-Validation
+skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-# Sepal Length Histogram
-plt.figure(figsize=(12, 8))
-sns.histplot(data=df, x='sepal length (cm)', hue='species', kde=True, bins=20)
-plt.title('Comparison of Sepal Length by Species')
+accuracies = []
+all_conf_matrices = []
+
+for train_index, test_index in skf.split(X, y):
+    X_train, X_test = X[train_index], X[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+
+    # 5 Train Naive Bayes Classifier
+    model = GaussianNB()
+    model.fit(X_train, y_train)
+
+    # 6 Make Predictions
+    y_pred = model.predict(X_test)
+
+    # 7 Evaluate the Model
+    accuracy = accuracy_score(y_test, y_pred)
+    accuracies.append(accuracy)
+
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    all_conf_matrices.append(conf_matrix)
+
+    print("Fold Accuracy:", accuracy)
+    print("Classification Report:\n", classification_report(y_test, y_pred))
+
+
+# 8 Compute Overall Accuracy
+print("\nOverall Accuracy (Mean of all folds):", np.mean(accuracies))
+
+
+# 9. Model evaluation
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.2f}")
+
+
+# 10. Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix:\n", cm)
+
+
+# 11. Visualizing the Confusion Matrix
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=iris.target_names, yticklabels=iris.target_names)
+plt.xlabel("Predicted Label")
+plt.ylabel("True Label")
+plt.title("Confusion Matrix")
 plt.show()
 
-# Sepal Width Histogram
-plt.figure(figsize=(12, 8))
-sns.histplot(data=df, x='sepal width (cm)', hue='species', kde=True, bins=20)
-plt.title('Comparison of Sepal Width by Species')
-plt.show()
 
-# Petal Length Histogram
-plt.figure(figsize=(12, 8))
-sns.histplot(data=df, x='petal length (cm)', hue='species', kde=True, bins=20)
-plt.title('Comparison of Petal Length by Species')
-plt.show()
+# 12. Create a Table Showing Correct & Incorrect Predictions
+comparison_df = pd.DataFrame({"Actual": y_test, "Predicted": y_pred})
+comparison_df["Correct"] = comparison_df["Actual"] == comparison_df["Predicted"]
+print(comparison_df)
 
-# Petal Width Histogram
-plt.figure(figsize=(12, 8))
-sns.histplot(data=df, x='petal width (cm)', hue='species', kde=True, bins=20)
-plt.title('Comparison of Petal Width by Species')
+
+# Count correct & incorrect predictions per class
+correct_counts = comparison_df.groupby("Actual")["Correct"].sum()
+incorrect_counts = comparison_df.groupby("Actual")["Correct"].count() - correct_counts
+
+
+# 13. Create a DataFrame for Visualization
+summary_df = pd.DataFrame({"Correct": correct_counts, "Incorrect": incorrect_counts})
+summary_df.index = iris.target_names  # Label index with class names
+print("\nPrediction Summary Table:")
+print(summary_df)
+
+
+# 14.  Plot the Bar Graph of Correct vs Incorrect Predictions
+summary_df.plot(kind="bar", stacked=True, color=["green", "red"], figsize=(8, 5))
+plt.title("Correct vs. Incorrect Predictions by Class")
+plt.xlabel("Iris Species")
+plt.ylabel("Count")
+plt.legend(["Correct", "Incorrect"])
+plt.xticks(rotation=0)
 plt.show()
